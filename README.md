@@ -1,1 +1,0 @@
-# script-fe-mochila-player-

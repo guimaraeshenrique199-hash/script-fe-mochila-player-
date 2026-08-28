@@ -1,7 +1,10 @@
 --========================================================
 -- 🎒 SCRIPT DA MOCHILA
 -- R6 E R15 | MOBILE + PC
--- Coloque como LocalScript em StarterPlayerScripts
+-- LocalScript em StarterPlayerScripts
+--
+-- 🎒 MOCHILA NORMAL = atrás do player
+-- 🎒 MOCHILA 2 = em cima da cabeça
 --========================================================
 
 local Players = game:GetService("Players")
@@ -13,6 +16,7 @@ local playerGui = player:WaitForChild("PlayerGui")
 local selectedPlayer = nil
 local backpackMode = false
 local backpackWeld = nil
+local backpackModeType = "Normal"
 
 --========================================================
 -- PEGAR PERSONAGEM
@@ -26,9 +30,38 @@ local function getCharacter(plr)
 	local character = plr.Character
 	local root = character:FindFirstChild("HumanoidRootPart")
 	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	local head = character:FindFirstChild("Head")
 
 	if root and humanoid then
-		return character, root, humanoid
+		return character, root, humanoid, head
+	end
+
+	return nil
+end
+
+--========================================================
+-- ENCONTRAR PLAYER
+--========================================================
+
+local function findPlayer(text)
+	if not text or text == "" then
+		return nil
+	end
+
+	text = string.lower(text)
+
+	for _, plr in ipairs(Players:GetPlayers()) do
+		if plr ~= player and string.lower(plr.Name) == text then
+			return plr
+		end
+	end
+
+	for _, plr in ipairs(Players:GetPlayers()) do
+		if plr ~= player then
+			if string.find(string.lower(plr.Name), text, 1, true) then
+				return plr
+			end
+		end
 	end
 
 	return nil
@@ -41,13 +74,12 @@ end
 local gui = Instance.new("ScreenGui")
 gui.Name = "ScriptDaMochila"
 gui.ResetOnSpawn = false
-gui.IgnoreGuiInset = false
 gui.Parent = playerGui
 
 local main = Instance.new("Frame")
 main.Name = "MochilaGUI"
-main.Size = UDim2.new(0, 240, 0, 390)
-main.Position = UDim2.new(0, 20, 0.5, -195)
+main.Size = UDim2.new(0, 250, 0, 500)
+main.Position = UDim2.new(0, 20, 0.5, -250)
 main.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 main.BorderSizePixel = 0
 main.Active = true
@@ -66,7 +98,7 @@ title.Size = UDim2.new(1, 0, 0, 45)
 title.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
 title.BorderSizePixel = 0
 title.Text = "🎒 SCRIPT DA MOCHILA"
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextColor3 = Color3.new(1, 1, 1)
 title.TextScaled = true
 title.Font = Enum.Font.GothamBold
 title.Parent = main
@@ -80,8 +112,8 @@ titleCorner.Parent = title
 --========================================================
 
 local selectedLabel = Instance.new("TextLabel")
-selectedLabel.Size = UDim2.new(1, -20, 0, 35)
-selectedLabel.Position = UDim2.new(0, 10, 0, 52)
+selectedLabel.Size = UDim2.new(1, -20, 0, 30)
+selectedLabel.Position = UDim2.new(0, 10, 0, 50)
 selectedLabel.BackgroundTransparency = 1
 selectedLabel.Text = "Selecione um jogador"
 selectedLabel.TextColor3 = Color3.fromRGB(255, 255, 0)
@@ -90,13 +122,53 @@ selectedLabel.Font = Enum.Font.GothamBold
 selectedLabel.Parent = main
 
 --========================================================
+-- CAIXA DO NOME
+--========================================================
+
+local nameBox = Instance.new("TextBox")
+nameBox.Size = UDim2.new(1, -20, 0, 40)
+nameBox.Position = UDim2.new(0, 10, 0, 85)
+nameBox.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
+nameBox.BorderSizePixel = 0
+nameBox.PlaceholderText = "Digite o nome do player"
+nameBox.Text = ""
+nameBox.TextColor3 = Color3.new(1, 1, 1)
+nameBox.PlaceholderColor3 = Color3.fromRGB(180, 180, 180)
+nameBox.TextScaled = true
+nameBox.Font = Enum.Font.Gotham
+nameBox.ClearTextOnFocus = false
+nameBox.Parent = main
+
+local nameCorner = Instance.new("UICorner")
+nameCorner.CornerRadius = UDim.new(0, 8)
+nameCorner.Parent = nameBox
+
+--========================================================
+-- BOTÃO PROCURAR
+--========================================================
+
+local searchButton = Instance.new("TextButton")
+searchButton.Size = UDim2.new(1, -20, 0, 35)
+searchButton.Position = UDim2.new(0, 10, 0, 132)
+searchButton.BackgroundColor3 = Color3.fromRGB(70, 100, 180)
+searchButton.BorderSizePixel = 0
+searchButton.Text = "🔎 PROCURAR PLAYER"
+searchButton.TextColor3 = Color3.new(1, 1, 1)
+searchButton.TextScaled = true
+searchButton.Font = Enum.Font.GothamBold
+searchButton.Parent = main
+
+local searchCorner = Instance.new("UICorner")
+searchCorner.CornerRadius = UDim.new(0, 8)
+searchCorner.Parent = searchButton
+
+--========================================================
 -- LISTA DE PLAYERS
 --========================================================
 
 local playerList = Instance.new("ScrollingFrame")
-playerList.Name = "ListaDePlayers"
-playerList.Size = UDim2.new(1, -20, 0, 190)
-playerList.Position = UDim2.new(0, 10, 0, 92)
+playerList.Size = UDim2.new(1, -20, 0, 130)
+playerList.Position = UDim2.new(0, 10, 0, 175)
 playerList.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 playerList.BorderSizePixel = 0
 playerList.ScrollBarThickness = 5
@@ -111,44 +183,55 @@ local layout = Instance.new("UIListLayout")
 layout.Padding = UDim.new(0, 4)
 layout.Parent = playerList
 
-local padding = Instance.new("UIPadding")
-padding.PaddingTop = UDim.new(0, 5)
-padding.PaddingLeft = UDim.new(0, 4)
-padding.PaddingRight = UDim.new(0, 4)
-padding.Parent = playerList
-
 --========================================================
--- BOTÃO VIRAR MOCHILA
+-- MOCHILA NORMAL
 --========================================================
 
-local startButton = Instance.new("TextButton")
-startButton.Name = "VirarMochila"
-startButton.Size = UDim2.new(1, -20, 0, 42)
-startButton.Position = UDim2.new(0, 10, 0, 292)
-startButton.BackgroundColor3 = Color3.fromRGB(0, 170, 70)
-startButton.BorderSizePixel = 0
-startButton.Text = "🎒 VIRAR MOCHILA"
-startButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-startButton.TextScaled = true
-startButton.Font = Enum.Font.GothamBold
-startButton.Parent = main
+local normalButton = Instance.new("TextButton")
+normalButton.Size = UDim2.new(1, -20, 0, 40)
+normalButton.Position = UDim2.new(0, 10, 0, 315)
+normalButton.BackgroundColor3 = Color3.fromRGB(0, 170, 70)
+normalButton.BorderSizePixel = 0
+normalButton.Text = "🎒 MOCHILA NORMAL"
+normalButton.TextColor3 = Color3.new(1, 1, 1)
+normalButton.TextScaled = true
+normalButton.Font = Enum.Font.GothamBold
+normalButton.Parent = main
 
-local startCorner = Instance.new("UICorner")
-startCorner.CornerRadius = UDim.new(0, 8)
-startCorner.Parent = startButton
+local normalCorner = Instance.new("UICorner")
+normalCorner.CornerRadius = UDim.new(0, 8)
+normalCorner.Parent = normalButton
 
 --========================================================
--- BOTÃO PARAR MOCHILA
+-- MOCHILA 2
+--========================================================
+
+local mochila2Button = Instance.new("TextButton")
+mochila2Button.Size = UDim2.new(1, -20, 0, 40)
+mochila2Button.Position = UDim2.new(0, 10, 0, 362)
+mochila2Button.BackgroundColor3 = Color3.fromRGB(90, 70, 180)
+mochila2Button.BorderSizePixel = 0
+mochila2Button.Text = "🎒 MOCHILA 2 - CABEÇA"
+mochila2Button.TextColor3 = Color3.new(1, 1, 1)
+mochila2Button.TextScaled = true
+mochila2Button.Font = Enum.Font.GothamBold
+mochila2Button.Parent = main
+
+local mochila2Corner = Instance.new("UICorner")
+mochila2Corner.CornerRadius = UDim.new(0, 8)
+mochila2Corner.Parent = mochila2Button
+
+--========================================================
+-- PARAR MOCHILA
 --========================================================
 
 local stopButton = Instance.new("TextButton")
-stopButton.Name = "PararMochila"
-stopButton.Size = UDim2.new(1, -20, 0, 42)
-stopButton.Position = UDim2.new(0, 10, 0, 340)
+stopButton.Size = UDim2.new(1, -20, 0, 40)
+stopButton.Position = UDim2.new(0, 10, 0, 415)
 stopButton.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
 stopButton.BorderSizePixel = 0
 stopButton.Text = "❌ PARAR MOCHILA"
-stopButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+stopButton.TextColor3 = Color3.new(1, 1, 1)
 stopButton.TextScaled = true
 stopButton.Font = Enum.Font.GothamBold
 stopButton.Parent = main
@@ -158,7 +241,43 @@ stopCorner.CornerRadius = UDim.new(0, 8)
 stopCorner.Parent = stopButton
 
 --========================================================
--- ATUALIZAR LISTA
+-- SELECIONAR PLAYER
+--========================================================
+
+local function selectPlayer(plr)
+	if not plr or plr == player then
+		return
+	end
+
+	selectedPlayer = plr
+	selectedLabel.Text = "Selecionado: " .. plr.Name
+	nameBox.Text = plr.Name
+end
+
+--========================================================
+-- PROCURAR
+--========================================================
+
+local function searchPlayer()
+	local found = findPlayer(nameBox.Text)
+
+	if found then
+		selectPlayer(found)
+	else
+		selectedLabel.Text = "⚠ Player não encontrado!"
+	end
+end
+
+searchButton.MouseButton1Click:Connect(searchPlayer)
+
+nameBox.FocusLost:Connect(function(enterPressed)
+	if enterPressed then
+		searchPlayer()
+	end
+end)
+
+--========================================================
+-- LISTA
 --========================================================
 
 local function updatePlayerList()
@@ -170,21 +289,16 @@ local function updatePlayerList()
 	end
 
 	for _, plr in ipairs(Players:GetPlayers()) do
-
 		if plr ~= player then
 
 			local button = Instance.new("TextButton")
-			button.Name = plr.Name
-
-			button.Size = UDim2.new(1, 0, 0, 34)
+			button.Size = UDim2.new(1, -4, 0, 34)
 			button.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
 			button.BorderSizePixel = 0
-
 			button.Text = plr.Name
-			button.TextColor3 = Color3.fromRGB(255, 255, 255)
+			button.TextColor3 = Color3.new(1, 1, 1)
 			button.TextScaled = true
 			button.Font = Enum.Font.Gotham
-
 			button.Parent = playerList
 
 			local buttonCorner = Instance.new("UICorner")
@@ -192,29 +306,18 @@ local function updatePlayerList()
 			buttonCorner.Parent = button
 
 			button.MouseButton1Click:Connect(function()
-
-				selectedPlayer = plr
-				selectedLabel.Text = "Selecionado: " .. plr.Name
-
+				selectPlayer(plr)
 			end)
-
 		end
-
 	end
 
 	task.wait()
 
 	playerList.CanvasSize = UDim2.new(
-		0,
-		0,
-		0,
-		layout.AbsoluteContentSize.Y + 10
+		0, 0,
+		0, layout.AbsoluteContentSize.Y + 8
 	)
 end
-
---========================================================
--- PLAYERS ENTRANDO E SAINDO
---========================================================
 
 Players.PlayerAdded:Connect(function()
 	task.wait(0.5)
@@ -234,8 +337,6 @@ Players.PlayerRemoving:Connect(function(plr)
 		end
 
 		selectedLabel.Text = "Jogador saiu!"
-		startButton.Text = "🎒 VIRAR MOCHILA"
-
 	end
 
 	task.wait(0.2)
@@ -245,72 +346,10 @@ end)
 updatePlayerList()
 
 --========================================================
--- VIRAR MOCHILA
---========================================================
-
-startButton.MouseButton1Click:Connect(function()
-
-	if backpackMode then
-		return
-	end
-
-	if not selectedPlayer then
-		selectedLabel.Text = "⚠ Escolha um jogador!"
-		return
-	end
-
-	local myCharacter, myRoot, myHumanoid =
-		getCharacter(player)
-
-	local targetCharacter, targetRoot =
-		getCharacter(selectedPlayer)
-
-	if not myCharacter or not targetCharacter then
-		selectedLabel.Text = "⚠ Player não encontrado!"
-		return
-	end
-
-	if backpackWeld then
-		backpackWeld:Destroy()
-		backpackWeld = nil
-	end
-
-	backpackMode = true
-
-	-- Sentar
-	myHumanoid.Sit = true
-
-	--====================================================
-	-- POSIÇÃO DA MOCHILA
-	-- Mais para baixo e atrás do jogador
-	--====================================================
-
-	myRoot.CFrame =
-		targetRoot.CFrame
-		* CFrame.new(0, -0.3, 1.1)
-		* CFrame.Angles(0, math.rad(180), 0)
-
-	--====================================================
-	-- PRENDER AO PLAYER
-	--====================================================
-
-	backpackWeld = Instance.new("WeldConstraint")
-	backpackWeld.Name = "MochilaWeld"
-
-	backpackWeld.Part0 = myRoot
-	backpackWeld.Part1 = targetRoot
-
-	backpackWeld.Parent = myRoot
-
-	selectedLabel.Text = "🎒 Mochila de: " .. selectedPlayer.Name
-	startButton.Text = "🎒 MOCHILA ATIVA"
-end)
-
---========================================================
 -- PARAR MOCHILA
 --========================================================
 
-stopButton.MouseButton1Click:Connect(function()
+local function stopMochila()
 
 	if not backpackMode then
 		return
@@ -323,37 +362,112 @@ stopButton.MouseButton1Click:Connect(function()
 		backpackWeld = nil
 	end
 
-	local myCharacter, myRoot, myHumanoid =
-		getCharacter(player)
+	local _, myRoot, myHumanoid = getCharacter(player)
 
 	if myHumanoid then
 		myHumanoid.Sit = false
 	end
 
-	-- Teleportar para o lado do player escolhido
 	if selectedPlayer and myRoot then
 
-		local targetCharacter, targetRoot =
-			getCharacter(selectedPlayer)
+		local _, targetRoot = getCharacter(selectedPlayer)
 
 		if targetRoot then
-
 			myRoot.CFrame =
-				targetRoot.CFrame
-				* CFrame.new(3, 0, 0)
-
+				targetRoot.CFrame * CFrame.new(3, 0, 0)
 		end
 	end
 
-	startButton.Text = "🎒 VIRAR MOCHILA"
+	selectedLabel.Text = "Mochila parada"
+end
 
-	if selectedPlayer then
-		selectedLabel.Text =
-			"Parado ao lado de: " .. selectedPlayer.Name
-	else
-		selectedLabel.Text = "Mochila parada"
+--========================================================
+-- ATIVAR MOCHILA
+--========================================================
+
+local function activateMochila(mode)
+
+	if backpackMode then
+		stopMochila()
 	end
+
+	if not selectedPlayer and nameBox.Text ~= "" then
+		local found = findPlayer(nameBox.Text)
+
+		if found then
+			selectPlayer(found)
+		end
+	end
+
+	if not selectedPlayer then
+		selectedLabel.Text = "⚠ Escolha um jogador!"
+		return
+	end
+
+	local _, myRoot, myHumanoid = getCharacter(player)
+	local _, targetRoot, _, targetHead = getCharacter(selectedPlayer)
+
+	if not myRoot or not myHumanoid or not targetRoot then
+		selectedLabel.Text = "⚠ Player não encontrado!"
+		return
+	end
+
+	backpackMode = true
+	backpackModeType = mode
+
+	myHumanoid.Sit = true
+
+	if mode == "Normal" then
+
+		-- Atrás do player
+		myRoot.CFrame =
+			targetRoot.CFrame
+			* CFrame.new(0, -0.3, 1.1)
+			* CFrame.Angles(0, math.rad(180), 0)
+
+	else
+
+		-- Em cima da cabeça
+		local height = 3.5
+
+		if targetHead then
+			height = 3
+		end
+
+		myRoot.CFrame =
+			targetRoot.CFrame
+			* CFrame.new(0, height, 0)
+
+	end
+
+	backpackWeld = Instance.new("WeldConstraint")
+	backpackWeld.Name = "MochilaWeld"
+	backpackWeld.Part0 = myRoot
+	backpackWeld.Part1 = targetRoot
+	backpackWeld.Parent = myRoot
+
+	if mode == "Normal" then
+		selectedLabel.Text =
+			"🎒 Mochila normal: " .. selectedPlayer.Name
+	else
+		selectedLabel.Text =
+			"🎒 Mochila 2: " .. selectedPlayer.Name
+	end
+end
+
+--========================================================
+-- BOTÕES
+--========================================================
+
+normalButton.MouseButton1Click:Connect(function()
+	activateMochila("Normal")
 end)
+
+mochila2Button.MouseButton1Click:Connect(function()
+	activateMochila("Cabeça")
+end)
+
+stopButton.MouseButton1Click:Connect(stopMochila)
 
 --========================================================
 -- GUI ARRASTÁVEL
@@ -391,7 +505,6 @@ title.InputBegan:Connect(function(input)
 		startPosition = main.Position
 
 		input.Changed:Connect(function()
-
 			if input.UserInputState == Enum.UserInputState.End then
 				dragging = false
 				dragInput = nil

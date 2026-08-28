@@ -1,18 +1,41 @@
 --========================================================
--- 🎒 SCRIPT DA MOCHILA - GUI COMPACTO
+-- 🎒 SCRIPT DA MOCHILA - FOLLOW COMPLETO
 -- R6 E R15 | MOBILE + PC
 -- LocalScript em StarterPlayerScripts
 --========================================================
 
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
+--========================================================
+-- VARIÁVEIS
+--========================================================
+
 local selectedPlayer = nil
 local backpackMode = false
-local backpackWeld = nil
+local followConnection = nil
+local originalAutoRotate = true
+
+--========================================================
+-- CONFIGURAÇÃO DA MOCHILA
+--========================================================
+
+-- Mochila normal: mais perto das costas/tronco
+local BACKPACK_DISTANCE = 0.9
+local BACKPACK_HEIGHT = -0.3
+
+-- Mochila 2: em cima da cabeça
+local HEAD_HEIGHT = 2.5
+
+-- Velocidade para alcançar o alvo
+local FOLLOW_SPEED = 28
+
+-- Se ficar muito longe, corrige a posição
+local CORRECTION_DISTANCE = 12
 
 --========================================================
 -- PEGAR PERSONAGEM
@@ -31,6 +54,8 @@ local function getCharacter(plr)
 	if root and humanoid then
 		return character, root, humanoid, head
 	end
+
+	return nil
 end
 
 --========================================================
@@ -69,6 +94,7 @@ gui.ResetOnSpawn = false
 gui.Parent = playerGui
 
 local main = Instance.new("Frame")
+main.Name = "MochilaGUI"
 main.Size = UDim2.new(0, 200, 0, 400)
 main.Position = UDim2.new(0, 10, 0.5, -200)
 main.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
@@ -78,18 +104,18 @@ main.Parent = gui
 
 Instance.new("UICorner", main).CornerRadius = UDim.new(0, 10)
 
--- TÍTULO
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, 0, 0, 38)
 title.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
+title.BorderSizePixel = 0
 title.Text = "🎒 MOCHILA"
 title.TextColor3 = Color3.new(1, 1, 1)
 title.TextScaled = true
 title.Font = Enum.Font.GothamBold
 title.Parent = main
+
 Instance.new("UICorner", title).CornerRadius = UDim.new(0, 10)
 
--- PLAYER SELECIONADO
 local selectedLabel = Instance.new("TextLabel")
 selectedLabel.Size = UDim2.new(1, -12, 0, 25)
 selectedLabel.Position = UDim2.new(0, 6, 0, 42)
@@ -100,81 +126,87 @@ selectedLabel.TextScaled = true
 selectedLabel.Font = Enum.Font.GothamBold
 selectedLabel.Parent = main
 
--- CAIXA DE NOME
 local nameBox = Instance.new("TextBox")
 nameBox.Size = UDim2.new(1, -12, 0, 32)
 nameBox.Position = UDim2.new(0, 6, 0, 70)
 nameBox.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
+nameBox.BorderSizePixel = 0
 nameBox.PlaceholderText = "Nome do player"
 nameBox.Text = ""
 nameBox.TextColor3 = Color3.new(1, 1, 1)
 nameBox.PlaceholderColor3 = Color3.fromRGB(180, 180, 180)
 nameBox.TextScaled = true
+nameBox.Font = Enum.Font.Gotham
 nameBox.ClearTextOnFocus = false
 nameBox.Parent = main
+
 Instance.new("UICorner", nameBox).CornerRadius = UDim.new(0, 7)
 
--- PROCURAR
 local searchButton = Instance.new("TextButton")
 searchButton.Size = UDim2.new(1, -12, 0, 30)
 searchButton.Position = UDim2.new(0, 6, 0, 108)
 searchButton.BackgroundColor3 = Color3.fromRGB(70, 100, 180)
+searchButton.BorderSizePixel = 0
 searchButton.Text = "🔎 PROCURAR"
 searchButton.TextColor3 = Color3.new(1, 1, 1)
 searchButton.TextScaled = true
 searchButton.Font = Enum.Font.GothamBold
 searchButton.Parent = main
+
 Instance.new("UICorner", searchButton).CornerRadius = UDim.new(0, 7)
 
--- LISTA
 local playerList = Instance.new("ScrollingFrame")
 playerList.Size = UDim2.new(1, -12, 0, 115)
 playerList.Position = UDim2.new(0, 6, 0, 145)
 playerList.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 playerList.BorderSizePixel = 0
 playerList.ScrollBarThickness = 4
-playerList.CanvasSize = UDim2.new()
+playerList.CanvasSize = UDim2.new(0, 0, 0, 0)
 playerList.Parent = main
+
 Instance.new("UICorner", playerList).CornerRadius = UDim.new(0, 7)
 
 local layout = Instance.new("UIListLayout")
 layout.Padding = UDim.new(0, 3)
 layout.Parent = playerList
 
--- MOCHILA NORMAL
 local normalButton = Instance.new("TextButton")
 normalButton.Size = UDim2.new(1, -12, 0, 34)
 normalButton.Position = UDim2.new(0, 6, 0, 268)
 normalButton.BackgroundColor3 = Color3.fromRGB(0, 170, 70)
+normalButton.BorderSizePixel = 0
 normalButton.Text = "🎒 MOCHILA NORMAL"
 normalButton.TextColor3 = Color3.new(1, 1, 1)
 normalButton.TextScaled = true
 normalButton.Font = Enum.Font.GothamBold
 normalButton.Parent = main
+
 Instance.new("UICorner", normalButton).CornerRadius = UDim.new(0, 7)
 
--- MOCHILA 2
 local mochila2Button = Instance.new("TextButton")
 mochila2Button.Size = UDim2.new(1, -12, 0, 34)
 mochila2Button.Position = UDim2.new(0, 6, 0, 308)
 mochila2Button.BackgroundColor3 = Color3.fromRGB(90, 70, 180)
+mochila2Button.BorderSizePixel = 0
 mochila2Button.Text = "🎒 MOCHILA 2 - CABEÇA"
 mochila2Button.TextColor3 = Color3.new(1, 1, 1)
 mochila2Button.TextScaled = true
 mochila2Button.Font = Enum.Font.GothamBold
 mochila2Button.Parent = main
+
 Instance.new("UICorner", mochila2Button).CornerRadius = UDim.new(0, 7)
 
--- PARAR
 local stopButton = Instance.new("TextButton")
 stopButton.Size = UDim2.new(1, -12, 0, 34)
 stopButton.Position = UDim2.new(0, 6, 0, 348)
 stopButton.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
+stopButton.BorderSizePixel = 0
 stopButton.Text = "❌ PARAR MOCHILA"
 stopButton.TextColor3 = Color3.new(1, 1, 1)
 stopButton.TextScaled = true
 stopButton.Font = Enum.Font.GothamBold
 stopButton.Parent = main
+
 Instance.new("UICorner", stopButton).CornerRadius = UDim.new(0, 7)
 
 --========================================================
@@ -221,15 +253,18 @@ local function updatePlayerList()
 	for _, plr in ipairs(Players:GetPlayers()) do
 		if plr ~= player then
 			local button = Instance.new("TextButton")
+
 			button.Size = UDim2.new(1, -4, 0, 28)
 			button.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+			button.BorderSizePixel = 0
 			button.Text = plr.Name
 			button.TextColor3 = Color3.new(1, 1, 1)
 			button.TextScaled = true
 			button.Font = Enum.Font.Gotham
 			button.Parent = playerList
 
-			Instance.new("UICorner", button).CornerRadius = UDim.new(0, 5)
+			Instance.new("UICorner", button).CornerRadius =
+				UDim.new(0, 5)
 
 			button.MouseButton1Click:Connect(function()
 				selectPlayer(plr)
@@ -240,8 +275,10 @@ local function updatePlayerList()
 	task.wait()
 
 	playerList.CanvasSize = UDim2.new(
-		0, 0,
-		0, layout.AbsoluteContentSize.Y + 5
+		0,
+		0,
+		0,
+		layout.AbsoluteContentSize.Y + 5
 	)
 end
 
@@ -253,6 +290,10 @@ end)
 Players.PlayerRemoving:Connect(function(plr)
 	if selectedPlayer == plr then
 		selectedPlayer = nil
+
+		if backpackMode then
+			backpackMode = false
+		end
 	end
 
 	task.wait(0.2)
@@ -266,24 +307,33 @@ updatePlayerList()
 --========================================================
 
 local function stopMochila()
+
 	backpackMode = false
 
-	if backpackWeld then
-		backpackWeld:Destroy()
-		backpackWeld = nil
+	if followConnection then
+		followConnection:Disconnect()
+		followConnection = nil
 	end
 
 	local _, myRoot, myHumanoid = getCharacter(player)
 
 	if myHumanoid then
 		myHumanoid.Sit = false
+		myHumanoid.AutoRotate = originalAutoRotate
+	end
+
+	if myRoot then
+		myRoot.AssemblyLinearVelocity = Vector3.zero
+		myRoot.AssemblyAngularVelocity = Vector3.zero
 	end
 
 	if selectedPlayer and myRoot then
 		local _, targetRoot = getCharacter(selectedPlayer)
 
 		if targetRoot then
-			myRoot.CFrame = targetRoot.CFrame * CFrame.new(3, 0, 0)
+			myRoot.CFrame =
+				targetRoot.CFrame
+				* CFrame.new(3, 0, 0)
 		end
 	end
 
@@ -295,12 +345,14 @@ end
 --========================================================
 
 local function activateMochila(mode)
+
 	if backpackMode then
 		stopMochila()
 	end
 
 	if not selectedPlayer and nameBox.Text ~= "" then
 		local found = findPlayer(nameBox.Text)
+
 		if found then
 			selectPlayer(found)
 		end
@@ -312,34 +364,166 @@ local function activateMochila(mode)
 	end
 
 	local _, myRoot, myHumanoid = getCharacter(player)
-	local _, targetRoot, _, targetHead = getCharacter(selectedPlayer)
 
-	if not myRoot or not myHumanoid or not targetRoot then
+	if not myRoot or not myHumanoid then
+		selectedLabel.Text = "⚠ Seu personagem não encontrado!"
+		return
+	end
+
+	local _, targetRoot = getCharacter(selectedPlayer)
+
+	if not targetRoot then
 		selectedLabel.Text = "⚠ Player não encontrado!"
 		return
 	end
 
 	backpackMode = true
+
+	originalAutoRotate = myHumanoid.AutoRotate
+
+	myHumanoid.AutoRotate = false
 	myHumanoid.Sit = true
 
+	myRoot.AssemblyLinearVelocity = Vector3.zero
+	myRoot.AssemblyAngularVelocity = Vector3.zero
+
+	followConnection = RunService.Heartbeat:Connect(function(deltaTime)
+
+		if not backpackMode then
+			return
+		end
+
+		if not selectedPlayer or not selectedPlayer.Parent then
+			stopMochila()
+			return
+		end
+
+		local _, currentRoot, currentHumanoid =
+			getCharacter(player)
+
+		local _, targetRootNow, _, targetHeadNow =
+			getCharacter(selectedPlayer)
+
+		if not currentRoot
+			or not currentHumanoid
+			or not targetRootNow then
+			return
+		end
+
+		currentHumanoid.Sit = true
+		currentHumanoid.AutoRotate = false
+
+		local wantedCFrame
+
+		-- MOCHILA NORMAL
+		if mode == "Normal" then
+
+			wantedCFrame =
+				targetRootNow.CFrame
+				* CFrame.new(
+					0,
+					BACKPACK_HEIGHT,
+					BACKPACK_DISTANCE
+				)
+				* CFrame.Angles(
+					0,
+					math.rad(180),
+					0
+				)
+
+		-- MOCHILA 2 - CABEÇA
+		elseif mode == "Cabeça" then
+
+			if targetHeadNow then
+				wantedCFrame =
+					targetHeadNow.CFrame
+					* CFrame.new(
+						0,
+						HEAD_HEIGHT,
+						0
+					)
+			else
+				wantedCFrame =
+					targetRootNow.CFrame
+					* CFrame.new(
+						0,
+						4,
+						0
+					)
+			end
+		end
+
+		if not wantedCFrame then
+			return
+		end
+
+		local distance =
+			(currentRoot.Position - wantedCFrame.Position).Magnitude
+
+		--================================================
+		-- CORREÇÃO AUTOMÁTICA
+		--================================================
+
+		if distance > CORRECTION_DISTANCE then
+
+			currentRoot.CFrame = wantedCFrame
+
+			currentRoot.AssemblyLinearVelocity = Vector3.zero
+			currentRoot.AssemblyAngularVelocity = Vector3.zero
+
+			return
+		end
+
+		--================================================
+		-- SEGUIR O PLAYER
+		--================================================
+
+		if distance > 0.08 then
+
+			local direction =
+				wantedCFrame.Position
+				- currentRoot.Position
+
+			local moveDistance = math.min(
+				FOLLOW_SPEED * deltaTime,
+				distance
+			)
+
+			local newPosition =
+				currentRoot.Position
+				+ direction.Unit * moveDistance
+
+			local rotationOnly =
+				wantedCFrame
+				- wantedCFrame.Position
+
+			currentRoot.CFrame =
+				CFrame.new(newPosition)
+				* rotationOnly
+
+		else
+
+			-- Já chegou à posição da mochila
+			currentRoot.CFrame = wantedCFrame
+		end
+
+		-- Remove movimentos físicos que podem causar quique
+		currentRoot.AssemblyLinearVelocity = Vector3.zero
+		currentRoot.AssemblyAngularVelocity = Vector3.zero
+	end)
+
 	if mode == "Normal" then
-		myRoot.CFrame =
-			targetRoot.CFrame
-			* CFrame.new(0, -0.3, 1.1)
-			* CFrame.Angles(0, math.rad(180), 0)
+		selectedLabel.Text =
+			"🎒 Seguindo: " .. selectedPlayer.Name
 	else
-		local height = targetHead and 3 or 3.5
-		myRoot.CFrame = targetRoot.CFrame * CFrame.new(0, height, 0)
+		selectedLabel.Text =
+			"🎒 Mochila 2: " .. selectedPlayer.Name
 	end
-
-	backpackWeld = Instance.new("WeldConstraint")
-	backpackWeld.Name = "MochilaWeld"
-	backpackWeld.Part0 = myRoot
-	backpackWeld.Part1 = targetRoot
-	backpackWeld.Parent = myRoot
-
-	selectedLabel.Text = "🎒 Mochila: " .. selectedPlayer.Name
 end
+
+--========================================================
+-- BOTÕES
+--========================================================
 
 normalButton.MouseButton1Click:Connect(function()
 	activateMochila("Normal")
@@ -356,16 +540,18 @@ stopButton.MouseButton1Click:Connect(stopMochila)
 --========================================================
 
 local dragging = false
-local dragStart
-local startPosition
-local dragInput
+local dragStart = nil
+local startPosition = nil
+local dragInput = nil
 
 local function updateDrag(input)
+
 	if not dragStart or not startPosition then
 		return
 	end
 
-	local delta = input.Position - dragStart
+	local delta =
+		input.Position - dragStart
 
 	main.Position = UDim2.new(
 		startPosition.X.Scale,
@@ -376,15 +562,22 @@ local function updateDrag(input)
 end
 
 title.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1
-		or input.UserInputType == Enum.UserInputType.Touch then
+
+	if input.UserInputType
+		== Enum.UserInputType.MouseButton1
+
+		or input.UserInputType
+		== Enum.UserInputType.Touch then
 
 		dragging = true
 		dragStart = input.Position
 		startPosition = main.Position
 
 		input.Changed:Connect(function()
-			if input.UserInputState == Enum.UserInputState.End then
+
+			if input.UserInputState
+				== Enum.UserInputState.End then
+
 				dragging = false
 				dragInput = nil
 			end
@@ -393,14 +586,22 @@ title.InputBegan:Connect(function(input)
 end)
 
 title.InputChanged:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseMovement
-		or input.UserInputType == Enum.UserInputType.Touch then
+
+	if input.UserInputType
+		== Enum.UserInputType.MouseMovement
+
+		or input.UserInputType
+		== Enum.UserInputType.Touch then
+
 		dragInput = input
 	end
 end)
 
 UIS.InputChanged:Connect(function(input)
-	if dragging and input == dragInput then
+
+	if dragging
+		and input == dragInput then
+
 		updateDrag(input)
 	end
 end)

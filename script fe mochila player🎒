@@ -1,3 +1,178 @@
+--========================================================--
+--              🎵🖼️ INTRO HENRIQUE 🖼️🎵
+--                    Script 2026❗️
+--                    🎵by henrique🎵
+--========================================================--
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local SoundService = game:GetService("SoundService")
+
+local Player = Players.LocalPlayer
+local PlayerGui = Player:WaitForChild("PlayerGui")
+
+--========================================================--
+-- CONFIGURAÇÕES
+--========================================================--
+
+local MUSIC_ID = "rbxassetid://1839246711"
+local IMAGE_ID = "rbxassetid://129676103296599"
+
+-- Tempo que a intro fica parada
+local HOLD_TIME = 2.5
+
+-- Duração da animação final
+local ANIMATION_TIME = 2.5
+
+--========================================================--
+-- GUI
+--========================================================--
+
+local Gui = Instance.new("ScreenGui")
+Gui.Name = "HenriqueIntro"
+Gui.ResetOnSpawn = false
+Gui.IgnoreGuiInset = true
+Gui.Parent = PlayerGui
+
+--========================================================--
+-- TEXTO
+--========================================================--
+
+local Text = Instance.new("TextLabel")
+Text.Name = "ByHenrique"
+Text.Parent = Gui
+
+Text.AnchorPoint = Vector2.new(0.5, 0.5)
+Text.Position = UDim2.new(0.5, 0, 0.42, 0)
+Text.Size = UDim2.new(0.9, 0, 0, 90)
+
+Text.BackgroundTransparency = 1
+
+Text.Text = "(By henrique)"
+Text.TextColor3 = Color3.fromRGB(255, 255, 255)
+Text.TextTransparency = 0
+
+Text.Font = Enum.Font.SciFi
+Text.TextScaled = true
+Text.TextSize = 50
+
+Text.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+Text.TextStrokeTransparency = 0.15
+
+Text.ZIndex = 10
+
+--========================================================--
+-- IMAGEM
+--========================================================--
+
+local Image = Instance.new("ImageLabel")
+Image.Name = "HenriqueImage"
+Image.Parent = Gui
+
+Image.AnchorPoint = Vector2.new(0.5, 0.5)
+Image.Position = UDim2.new(0.5, 0, 0.56, 0)
+Image.Size = UDim2.new(0, 100, 0, 100)
+
+Image.BackgroundTransparency = 1
+Image.Image = IMAGE_ID
+Image.ImageTransparency = 0
+
+Image.ScaleType = Enum.ScaleType.Fit
+Image.ZIndex = 10
+
+--========================================================--
+-- MÚSICA
+--========================================================--
+
+local Music = Instance.new("Sound")
+Music.Name = "HenriqueIntroMusic"
+Music.SoundId = MUSIC_ID
+Music.Volume = 0.6
+Music.Looped = false
+Music.Parent = SoundService
+
+Music:Play()
+
+--========================================================--
+-- TEMPO INICIAL
+--========================================================--
+
+task.wait(HOLD_TIME)
+
+--========================================================--
+-- ANIMAÇÃO DO TEXTO
+-- Sobe e desaparece
+--========================================================--
+
+local TextEndPosition = UDim2.new(
+	0.5,
+	0,
+	0.42,
+	-130
+)
+
+local TextTween = TweenService:Create(
+	Text,
+	TweenInfo.new(
+		ANIMATION_TIME,
+		Enum.EasingStyle.Quint,
+		Enum.EasingDirection.Out
+	),
+	{
+		Position = TextEndPosition,
+		TextTransparency = 1,
+		TextStrokeTransparency = 1
+	}
+)
+
+--========================================================--
+-- ANIMAÇÃO DA IMAGEM
+-- Gira + diminui + desaparece
+--========================================================--
+
+local ImageTween = TweenService:Create(
+	Image,
+	TweenInfo.new(
+		ANIMATION_TIME,
+		Enum.EasingStyle.Quint,
+		Enum.EasingDirection.InOut
+	),
+	{
+		Size = UDim2.new(0, 0, 0, 0),
+		ImageTransparency = 1,
+		Rotation = 360
+	}
+)
+
+TextTween:Play()
+ImageTween:Play()
+
+--========================================================--
+-- FINALIZAÇÃO
+--========================================================--
+
+ImageTween.Completed:Wait()
+
+if Gui then
+	Gui:Destroy()
+end
+
+-- A música continua somente até o próprio áudio terminar.
+-- Não existe Loop.
+
+Music.Ended:Connect(function()
+	if Music and Music.Parent then
+		Music:Destroy()
+	end
+end)
+
+-- Segurança para limpar o áudio caso necessário
+task.delay(10, function()
+	if Music and Music.Parent then
+		Music:Destroy()
+	end
+end)
+
 --========================================================
 -- 🎒 SCRIPT DA MOCHILA - FOLLOW COMPLETO
 -- R6 E R15 | MOBILE + PC
